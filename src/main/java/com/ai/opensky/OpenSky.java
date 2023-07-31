@@ -1,9 +1,17 @@
 package com.ai.opensky;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import org.glassfish.jersey.client.JerseyClientBuilder;
@@ -34,6 +42,8 @@ import org.glassfish.jersey.client.ClientProperties;
  */
 public class OpenSky {
     
+    private static final String OPEN_SKY_API_GETALL = "https://opensky-network.org/api/states/all";
+    
     private static HostnameVerifier hostnameVerifier;
     private static SSLContext sslContext;    
     private static Client wsClient;
@@ -43,6 +53,12 @@ public class OpenSky {
         wsClient = hostIgnoringClient(); //create();
     }
     
+    /**
+     * 
+     * 
+     * 
+     * 
+     */
     static private void trustAllHosts() {
         // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
@@ -83,7 +99,13 @@ public class OpenSky {
     }
  
     
-    static public Client hostIgnoringClient() {
+    /**
+     * 
+     * 
+     * 
+     * @return 
+     */
+    static private Client hostIgnoringClient() {
         try { 
             ClientConfig config = new ClientConfig();
             config = config.property(ClientProperties.CONNECT_TIMEOUT, 30000);
@@ -103,29 +125,139 @@ public class OpenSky {
         }
     }    
     
-    
     /**
      * 
+    * Read directly from the API
      * 
      * 
-     * 
-     */    
-    static public ArrayList<OpenSkyRawAirTraffic> readAirTraffic(){
-
-        
-        ArrayList<OpenSkyRawAirTraffic> openSkyRawList = 
-                new ArrayList<>();
-
-        WebTarget wt = wsClient.target("https://opensky-network.org/api/states/all");
+     * @return 
+     */
+    static public String readAirTrafficApiToRawOutput(){
+        WebTarget wt = wsClient.target(OPEN_SKY_API_GETALL);
         Response resp = wt.request(MediaType.APPLICATION_JSON).get();
         final int status = resp.getStatus();
         if( status>300) {
             //unexpected error
         }else{
-            //OLD CODE String jsonBody = resp.getEntity(String.class);
             String jsonBody = resp.readEntity(String.class);
+            return jsonBody;
+        }
+        return null;
+    }
+    
+    /**
+     * Read from a raw file (API raw output format)
+     * 
+     * 
+     * @param fullFileLocationAndNameAndExt
+     * @return 
+     */
+    static public String readAirTrafficRawFileToRawOutput( String fullFileLocationAndNameAndExt) {
+       
+        try {
+            return Files.readString( Path.of(fullFileLocationAndNameAndExt) );
+        } catch (IOException e) {        
+            System.out.println(e.toString());
+        } 
+        return null;       
+       
+    }
+    
+    
+    /**
+     * 
+     * @param rawApiOutput
+     * call with either:
+     *          readAirTrafficApiToRawOutput (direct call to API)
+     *          readAirTrafficRawFileToRawOutput (from a raw file)
+     * 
+    * 
+     * @return 
+     */
+    static public JsonObject readAirTrafficRawOutputToJson(String rawApiOutput){
+
+       if( rawApiOutput!=null) {
             JsonParser jsonParser = new JsonParser();
-            JsonObject jsonOpenSkyObj = jsonParser.parse(jsonBody).getAsJsonObject();
+            JsonObject jsonOpenSkyObj = jsonParser.parse(rawApiOutput).getAsJsonObject();
+            return jsonOpenSkyObj;
+        }
+        
+        return null;
+        
+    }
+    
+    /**
+     * 
+     * 
+     * 
+     * @param fileLocation
+     * @param baseFileName 
+     */    
+    static public void readAirTrafficApiToFileRaw(String fileLocation, String baseFileName){
+
+        try{
+            
+            JsonObject jsonObj = readAirTrafficRawOutputToJson(readAirTrafficApiToRawOutput());
+            
+            if( jsonObj==null){
+                System.out.println("No JSON to write?");
+                return;
+            }
+            
+            FileWriter fileWriter = new FileWriter(fileLocation+"/"+baseFileName+"_"+System.currentTimeMillis()+".raw");                      
+            fileWriter.write(jsonObj.toString());
+            fileWriter.close();
+        
+        } catch (IOException e) {        
+            System.out.println(e.toString());
+        }  
+        
+        /*
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        gson.toJson(new User(1, null, "Unknown"), new FileWriter(filePath));
+        JsonWriter jsonWriter = gson.newJsonWriter(fileWriter);
+        jsonWriter.
+        */
+        
+        
+    }
+    
+    /**
+     * 
+     * 
+     * 
+     * @param fileLocation
+     * @param baseFileName 
+     */    
+    static public void readAirTrafficApiToFileJson(String fileLocation, String baseFileName){
+
+        ArrayList<OpenSkyRawAirTraffic> openSkyRawList = readAirTrafficApiToObjects();
+        
+        if( openSkyRawList!=null) {
+            try{               
+                FileWriter fileWriter = new FileWriter(fileLocation+"/"+baseFileName+"_"+System.currentTimeMillis()+".json"); 
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                gson.toJson(openSkyRawList, fileWriter);
+                fileWriter.close();                              
+            } catch (IOException e) {        
+                 System.out.println(e.toString());
+            } 
+        }
+    }
+        
+    /**
+     * 
+     * 
+     * 
+     * 
+     * @return 
+     */    
+    static private ArrayList<OpenSkyRawAirTraffic> readAirTrafficApiToObjects(  JsonObject jsonOpenSkyObj ){
+        
+        ArrayList<OpenSkyRawAirTraffic> openSkyRawList = 
+            new ArrayList<>();
+
+        if( jsonOpenSkyObj!=null) {
 
             Long timeAsLong = jsonOpenSkyObj.get("time").getAsLong();
 
@@ -205,11 +337,43 @@ public class OpenSky {
         return openSkyRawList;
     }    
     
+          
+    /**
+     * 
+     * @return 
+     */    
+    static public ArrayList<OpenSkyRawAirTraffic> readAirTrafficApiToObjects(){
+
+        return readAirTrafficApiToObjects( 
+                readAirTrafficRawOutputToJson(
+                        readAirTrafficApiToRawOutput()));        
+        
+    }
+
+              
+    /**
+     * 
+     * @param fullFileLocationAndNameAndExt
+     * @return 
+     */    
+    static public ArrayList<OpenSkyRawAirTraffic> readAirTrafficRawFileToObjects(  String fullFileLocationAndNameAndExt ) {
+ 
+        return readAirTrafficApiToObjects( 
+                readAirTrafficRawOutputToJson(
+                        readAirTrafficRawFileToRawOutput( fullFileLocationAndNameAndExt)));                
+    }
+
+    
     
      public static void main(String[] args) throws Exception {
 
         //start test code        
-        ArrayList<OpenSkyRawAirTraffic> osraList = OpenSky.readAirTraffic();   
+        
+        //read directly from API (live)
+        ArrayList<OpenSkyRawAirTraffic> osraList = OpenSky.readAirTrafficApiToObjects();   
+        
+        //read directly from a raw file (API format)
+        //ArrayList<OpenSkyRawAirTraffic> osraList = OpenSky.readAirTrafficRawFileToObjects("c:/projects/temp/openSkyData_1690830830104.raw");
         
         for( OpenSkyRawAirTraffic osra: osraList ){
             System.out.print(osra.toString()+"\n");
@@ -218,16 +382,20 @@ public class OpenSky {
                 System.out.print("...."+osra.callsign +" is GROUNDED!!\n");
             }
             
+            //applying a geohash algorithm
+            /*
             if( osra.latitude!=null && osra.longitude!=null){
                 System.out.print(".... GEOHASH:"+com.github.davidmoten.geo.GeoHash.encodeHash(osra.latitude, osra.longitude) +"\n");                
             }
+            */
             
             //test byte streaming
+            /*
             byte[] asBytes = osra.getAsBytes();
             System.out.print("....as bytes L="+asBytes.length+"\n");            
             OpenSkyRawAirTraffic osraRehydraded = OpenSkyRawAirTraffic.getFromBytes(asBytes);
             System.out.print("....rehydrated:"+osraRehydraded.callsign+"\n");
-            
+            */            
         }
         
         System.out.print("TOTAL FLIGHTS: "+osraList.size()+"\n");
@@ -239,7 +407,17 @@ public class OpenSky {
         System.out.print(".... GEOHASH FROM BBOX:"+coverage.toString());
         */
         
-        //end test code
-     }
+        
+        //write to raw flat file
+        System.out.print("Writing to raw file..."); 
+        readAirTrafficApiToFileRaw("c:/projects/temp", "openSkyData") ;
+         
+        //write to JSON flat file
+        System.out.print("Writing to JSON file..."); 
+        readAirTrafficApiToFileJson("c:/projects/temp", "openSkyData") ;
+        
+         //end test code
+     } 
+     
     
 }
