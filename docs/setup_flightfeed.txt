@@ -1,0 +1,46 @@
+
+A Cloud Guru AWS Sandbox
+
+------------------------
+launch EC2 instance
+
+
+"FlightDataFeed"
+
+template: Amazon Machine Image AMI HVM/SSD
+
+type: t2Micro 1cpu, 1G mem, (free)
+
+create key pair: 'aiHackathonKeyPair' - defaults .. save off new pem file
+
+.. use the rest as defaults
+
+)))) Launch New Intance 
+
+)))) Connect to new instance "FlightDataFeed" (EC2 Instance Connect - defaults)
+
+> sudo yum -y update
+> sudo yum -y java
+> mkdir flightfeed
+
+Copy the JAR file to the EC2 instance... /flightfeed
+scp -i /projects/ai_proserve/ai_hackathon082023__pem/aiHackathonKeyPair.pem /projects/ai_proserve/ai_hackathon082023_jars/aiHackathon082023-5cycles_10min.jar ec2-user@ec2-54-164-56-244.compute-1.amazonaws.com:~/flightfeed/
+or
+use FileZilla w/ SFTP and add the PEM file (instructiosn: https://angus.readthedocs.io/en/2014/amazon/transfer-files-between-instance.html)
+
+> java -cp aiHackathon082023.jar com.ai.opensky.OpenSky
+
+... results output to "./data" (or wherever its set to in the OpenSky class)
+
+
+
+
+
+
+
+
+
+
+
+
+
