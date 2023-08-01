@@ -30,10 +30,9 @@ public class OpenSkyAdapterLambda implements RequestHandler<S3Event, String> {
 
     @Override
     public String handleRequest(S3Event s3event, Context context) {
-        try {
             
-             LambdaLogger logger = context.getLogger();
-            
+        LambdaLogger logger = context.getLogger();
+        try {    
             // Get the S3 object details from the event
             String bucketName = s3event.getRecords().get(0).getS3().getBucket().getName();
             String key = s3event.getRecords().get(0).getS3().getObject().getKey();
@@ -51,11 +50,11 @@ public class OpenSkyAdapterLambda implements RequestHandler<S3Event, String> {
             reader.close();
             s3InputStream.close();
             
-            
+            //pull air traffic chunks from raw OpenSKy outputs
             ArrayList<OpenSkyRawAirTraffic> osraList = 
                     OpenSky.readAirTrafficRawOutputToObjects( fullFileAsString.toString() );
 
-            System.out.print("total flights to normalize: "+osraList.size()+"\n");
+            logger.log("total flights to normalize: "+osraList.size());
             
             for( OpenSkyRawAirTraffic osra: osraList ){
                 NormalizedLocation location = new NormalizedLocation();
@@ -72,7 +71,7 @@ public class OpenSkyAdapterLambda implements RequestHandler<S3Event, String> {
                     location.velocityMetersPerSec = 0.0;
                 }
 
-                System.out.print(location.toString()+"\n");
+                logger.log("normalize location:"+location.toString());
                 
                 // Create a DynamoDB item
                 Map<String, AttributeValue> item = new HashMap<>();
@@ -92,6 +91,7 @@ public class OpenSkyAdapterLambda implements RequestHandler<S3Event, String> {
             }
             return "Success";
         } catch (Exception e) {
+           logger.log("error converting OpenSky to Normalized Location:"+e.getMessage());
             throw new RuntimeException(e);
         }
     }
