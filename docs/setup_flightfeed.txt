@@ -20,7 +20,7 @@ create key pair: 'aiHackathonKeyPair' - defaults .. save off new pem file
 )))) Connect to new instance "FlightDataFeed" (EC2 Instance Connect - defaults)
 
 > sudo yum -y update
-> sudo yum -y java
+> sudo yum install java
 > mkdir flightfeed
 
 Copy the JAR file to the EC2 instance... /flightfeed

@@ -7,6 +7,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import org.glassfish.jersey.client.JerseyClientBuilder;
 import org.glassfish.jersey.client.ClientConfig;
 import javax.ws.rs.client.Client;
@@ -43,6 +45,12 @@ import org.glassfish.jersey.client.ClientProperties;
 public class OpenSky {
     
     private static final String OPEN_SKY_API_GETALL = "https://opensky-network.org/api/states/all";
+    
+    private static final int CYCLE_TEST_COUNT = 10;
+    private static final int CYCLE_TEST_PAUSE_MIN = 5;
+    
+    private static final String OUTPUT_DIR = "./data";
+    private static final String OUTPUT_FILE_PREFIX = "osFlightData";
     
     private static HostnameVerifier hostnameVerifier;
     private static SSLContext sslContext;    
@@ -369,52 +377,56 @@ public class OpenSky {
 
         //start test code        
         
-        //read directly from API (live)
-        ArrayList<OpenSkyRawAirTraffic> osraList = OpenSky.readAirTrafficApiToObjects();   
-        
-        //read directly from a raw file (API format)
-        //ArrayList<OpenSkyRawAirTraffic> osraList = OpenSky.readAirTrafficRawFileToObjects("c:/projects/temp/openSkyData_1690830830104.raw");
-        
-        for( OpenSkyRawAirTraffic osra: osraList ){
-            System.out.print(osra.toString()+"\n");
-            
-            if( osra.onGround ){
-                System.out.print("...."+osra.callsign +" is GROUNDED!!\n");
-            }
-            
-            //applying a geohash algorithm
+        for( int cycle=0; cycle<CYCLE_TEST_COUNT; cycle++){
+
             /*
-            if( osra.latitude!=null && osra.longitude!=null){
-                System.out.print(".... GEOHASH:"+com.github.davidmoten.geo.GeoHash.encodeHash(osra.latitude, osra.longitude) +"\n");                
+            ArrayList<OpenSkyRawAirTraffic> osraList;
+            //read directly from API (live)
+            osraList = OpenSky.readAirTrafficApiToObjects();   
+            //read directly from a raw file (API format)
+            //osraList = OpenSky.readAirTrafficRawFileToObjects(OUTPUT_DIR+"/"+OUTPUT_FILE_PREFIX+"_1690830830104.raw");
+
+            for( OpenSkyRawAirTraffic osra: osraList ){
+                System.out.print(osra.toString()+"\n");
+
+                if( osra.onGround ){
+                    System.out.print("...."+osra.callsign +" is GROUNDED!!\n");
+                }
+
+                //applying a geohash algorithm
+                //if( osra.latitude!=null && osra.longitude!=null){
+                //    System.out.print(".... GEOHASH:"+com.github.davidmoten.geo.GeoHash.encodeHash(osra.latitude, osra.longitude) +"\n");                
+                //}
+
+                //test byte streaming
+                //byte[] asBytes = osra.getAsBytes();
+                //System.out.print("....as bytes L="+asBytes.length+"\n");            
+                //OpenSkyRawAirTraffic osraRehydraded = OpenSkyRawAirTraffic.getFromBytes(asBytes);
+                //System.out.print("....rehydrated:"+osraRehydraded.callsign+"\n");                            
             }
+
+            System.out.print("TOTAL FLIGHTS: "+osraList.size()+"\n");
             */
+
+            //com.github.davidmoten.geo.Coverage coverage =
+            //    com.github.davidmoten.geo.GeoHash.coverBoundingBox(-0.489,51.28,0.236,51.686);
+            //System.out.print(".... GEOHASH FROM BBOX:"+coverage.toString());
             
-            //test byte streaming
-            /*
-            byte[] asBytes = osra.getAsBytes();
-            System.out.print("....as bytes L="+asBytes.length+"\n");            
-            OpenSkyRawAirTraffic osraRehydraded = OpenSkyRawAirTraffic.getFromBytes(asBytes);
-            System.out.print("....rehydrated:"+osraRehydraded.callsign+"\n");
-            */            
+            //write to JSON flat file
+            //System.out.print("Writing to JSON file...\n"); 
+            //new File(OUTPUT_DIR).mkdirs();
+            //readAirTrafficApiToFileJson(OUTPUT_DIR, OUTPUT_FILE_PREFIX) ;
+
+            
+            //write to raw flat file
+            System.out.print("Writing to raw file...\n"); 
+            new File(OUTPUT_DIR).mkdirs();
+            readAirTrafficApiToFileRaw(OUTPUT_DIR, OUTPUT_FILE_PREFIX) ;
+            
+            if( CYCLE_TEST_PAUSE_MIN>0 ) System.out.print("PAUSING BEFORE PULLING NEXT FLIGHT DATA...\n");
+            
+            Thread.sleep(CYCLE_TEST_PAUSE_MIN*60*1000);
         }
-        
-        System.out.print("TOTAL FLIGHTS: "+osraList.size()+"\n");
-        
-        
-        /*                
-        com.github.davidmoten.geo.Coverage coverage =
-            com.github.davidmoten.geo.GeoHash.coverBoundingBox(-0.489,51.28,0.236,51.686);
-        System.out.print(".... GEOHASH FROM BBOX:"+coverage.toString());
-        */
-        
-        
-        //write to raw flat file
-        System.out.print("Writing to raw file..."); 
-        readAirTrafficApiToFileRaw("c:/projects/temp", "openSkyData") ;
-         
-        //write to JSON flat file
-        System.out.print("Writing to JSON file..."); 
-        readAirTrafficApiToFileJson("c:/projects/temp", "openSkyData") ;
         
          //end test code
      } 

@@ -5,6 +5,7 @@ import com.ai.opensky.OpenSky;
 import com.ai.opensky.OpenSkyRawAirTraffic;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -18,6 +19,9 @@ import java.util.Date;
  * @author rwilcom
  */
 public class OpenSkyAdapter {
+    
+    private static final String OUTPUT_DIR = "/projects/temp/locs";    
+    private static final String OUTPUT_FILE_PREFIX = "loc";
     
   /**
      * 
@@ -60,6 +64,8 @@ public class OpenSkyAdapter {
 
         System.out.print("TOTAL FLIGHTS TO NORMALIZE: "+osraList.size()+"\n");
         
+        new File(OUTPUT_DIR).mkdirs();
+        
         int count = 0;
         int throttleOutput = 10;        
         for( OpenSkyRawAirTraffic osra: osraList ){
@@ -78,9 +84,9 @@ public class OpenSkyAdapter {
             }
             
             System.out.print(location.toString()+"\n");
-            
-            if( count<throttleOutput ){
-                writeNormalizedLocationToJsonFile(location, "c:/projects/temp/locs", "loc") ;
+                        
+            if( count<throttleOutput ){                
+                writeNormalizedLocationToJsonFile(location, OUTPUT_DIR, OUTPUT_FILE_PREFIX) ;
             }
             
             count++;
