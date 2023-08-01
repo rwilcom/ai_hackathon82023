@@ -14,13 +14,31 @@
     </properties>
     
     <dependencies>
-        
+        <!-- AWS SDK for Java -->
         <dependency>
             <groupId>com.amazonaws</groupId>
-            <artifactId>aws-lambda-java-core</artifactId>
-            <version>1.2.2</version>
-        </dependency>        
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>1.11.1000</version> <!-- Use the latest version -->
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-dynamodb</artifactId>
+            <version>1.11.1000</version> <!-- Use the latest version -->
+        </dependency>
         
+        <!-- AWS Lambda Java Events -->
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-events</artifactId>
+            <version>3.10.0</version> <!-- Use the latest version -->
+        </dependency>
+    <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-lambda-java-core</artifactId>
+        <version>1.2.1</version> <!-- Use the latest version -->
+    </dependency>
+        
+
 
         <dependency>
             <groupId>org.glassfish.jersey.core</groupId>
