@@ -1,3 +1,5 @@
+package com.ai.aws.adapters.lambda;
+
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
@@ -15,6 +17,10 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
+/*
+ * EXAMPLE FILE OF LAMBDA FUNCTION TO MOVE FROM S3 to DYNAMO 
+ * 
+ */ 
 public class S3ToDynamoLambda implements RequestHandler<S3Event, String> {
 
     private final AmazonDynamoDB dynamoDB = AmazonDynamoDBClientBuilder.defaultClient();
