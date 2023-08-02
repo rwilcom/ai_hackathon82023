@@ -370,6 +370,16 @@ public class OpenSky {
                         readAirTrafficRawFileToRawOutput( fullFileLocationAndNameAndExt)));                
     }
 
+    /**
+     * 
+     * @param rawFileOutput
+     * @return 
+     */    
+    static public ArrayList<OpenSkyRawAirTraffic> readAirTrafficRawOutputToObjects( String rawFileOutput ){
+        
+        JsonObject jsonOpenSkyObj = readAirTrafficRawOutputToJson(rawFileOutput);
+        return readAirTrafficApiToObjects( jsonOpenSkyObj );
+    } 
     
     
      public static void main(String[] args) throws Exception {
