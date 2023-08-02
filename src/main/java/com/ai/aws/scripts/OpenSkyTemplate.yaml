@@ -1,0 +1,151 @@
+Resources:
+  MySecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 2ec7557d-5e0a-4b51-a400-79d385c9dc5f
+
+  MyBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: ai-hackathon-event-bucket-1
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 18c8b289-22bf-4251-b87c-44d90fab2d47
+
+  MyInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: t2.micro
+      KeyName: OpenSkyKeyPem
+      ImageId: ami-0f34c5ae932e6f0e4
+      IamInstanceProfile: !Ref MyInstanceProfile
+      UserData: !Base64 
+        'Fn::Sub': |
+          #!/bin/bash
+          mkdir /home/ec2-user/OpenSky
+          mkdir /home/ec2-user/OpenSky/Data
+          chown -R ec2-user:ec2-user /home/ec2-user/OpenSky/
+          yum install -y java-1.8.0
+          yum install -y inotify-tools
+      SecurityGroups:
+        - !Ref MySecurityGroup
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: de871795-5134-475c-ab6a-50975b295655
+    DependsOn:
+      - MyBucket
+
+  OpenSkyDataTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: OpenSkyData
+      AttributeDefinitions:
+        - AttributeName: Id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: Id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: dc89dff5-4719-4699-84a3-1664c4dab215
+
+  MyLambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: LambdaS3DynamoAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                Resource:
+                  - !GetAtt 
+                    - MyBucket
+                    - Arn
+                  - !Sub '${MyBucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:DeleteItem'
+                Resource:
+                  - !GetAtt OpenSkyDataTable.Arn
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 3ba0a9d9-247d-4e2e-8057-8b764ad211d0
+
+  MyInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Roles:
+        - !Ref MyInstanceRole
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 158a72e1-ff13-45f3-9fcb-47ea1c5e5ee2
+        
+  MyInstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess'
+      Policies:
+        - PolicyName: EC2InstanceConnect
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 'ec2-instance-connect:SendSSHPublicKey'
+                Resource: !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*'
+                Condition:
+                  StringEquals:
+                    'ec2:osuser': ec2-user
+        - PolicyName: S3BucketAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                Resource:
+                  - !Sub 'arn:aws:s3:::${MyBucket}'
+                  - !Sub 'arn:aws:s3:::${MyBucket}/*'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 7afd3a06-5c30-4fdb-a7c9-8f5514b820f3
