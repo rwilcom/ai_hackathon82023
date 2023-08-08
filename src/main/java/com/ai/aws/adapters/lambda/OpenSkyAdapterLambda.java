@@ -7,7 +7,9 @@ import com.ai.opensky.OpenSkyRawAirTraffic;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.DescribeTableResult;
 import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
+import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -24,6 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class OpenSkyAdapterLambda implements RequestHandler<S3Event, String> {
+    
+    private static final String TABLE_NAME = "OpenSkyData";
     
     private final AmazonDynamoDB dynamoDB = AmazonDynamoDBClientBuilder.defaultClient();
     private final AmazonS3 s3Client = AmazonS3ClientBuilder.defaultClient();
@@ -71,27 +75,67 @@ public class OpenSkyAdapterLambda implements RequestHandler<S3Event, String> {
                     location.velocityMetersPerSec = 0.0;
                 }
 
-                logger.log("normalize location:"+location.toString());
+                logger.log("normalized location:"+location.toString());
+                
+                /*
+                DescribeTableResult tableDescription =
+                    dynamoDB.describeTable(TABLE_NAME);
+                logger.log("AWS Table Description: "+tableDescription.getTable().getTableStatus()+": "+tableDescription.getTable().getTableName()+" "
+                        + "\t ReadCapacityUnits: "+tableDescription.getTable().getProvisionedThroughput().getReadCapacityUnits()+
+                        " \t WriteCapacityUnits: "+tableDescription.getTable().getProvisionedThroughput().getWriteCapacityUnits() );                
+                */
                 
                 // Create a DynamoDB item
+               
+                AttributeValue avId = new AttributeValue();
+                avId.setS(""+location.uid+location.locationDateTime.getTime());
+
+                AttributeValue avCallSignTranspndr = new AttributeValue();
+                avCallSignTranspndr.setS(""+location.uid);
+                
+                AttributeValue avDateTime = new AttributeValue();
+                avDateTime.setS(""+location.locationDateTime);
+
+                AttributeValue avLon = new AttributeValue();
+                avLon.setS(""+location.longitude);
+                
+                AttributeValue avLat = new AttributeValue();
+                avLat.setS(""+location.latitude);
+                
+                AttributeValue avAltM = new AttributeValue();
+                avAltM.setS(""+location.altitudeMeters);
+
+                AttributeValue avHeadingDecDegN0 = new AttributeValue();
+                avHeadingDecDegN0.setS(""+location.headingDecDegFromNorth0);
+ 
                 Map<String, AttributeValue> item = new HashMap<>();
-                item.put("index", new AttributeValue().withS( ""+location.uid+location.locationDateTime.getTime()));
-                item.put("dateTime", new AttributeValue().withS( ""+location.locationDateTime));
-                item.put("id", new AttributeValue().withS( location.uid));
-                item.put("long", new AttributeValue().withS(""+location.longitude));
-                item.put("lat", new AttributeValue().withS(""+location.latitude));
-                item.put("altitudeMeters", new AttributeValue().withS(""+location.altitudeMeters));
-                item.put("headingDecDegFromNorth0", new AttributeValue().withS(""+location.headingDecDegFromNorth0));
+                item.put("Id", avId );               
+                item.put("callsignTnspr", avCallSignTranspndr );                               
+                item.put("dateTime", avDateTime);
+                item.put("lon", avLon);                                
+                item.put("lat", avLat);                
+                item.put("altM", avAltM);                
+                item.put("headingDecDegN0", avHeadingDecDegN0);                
         
+                /*
+                log AttributeValue object
+                for( String itemKey : item.keySet()){
+                    AttributeValue value = item.get(itemKey);                    
+                    logger.log("dynamo attribtute map="+itemKey+":"+value.toString());
+                }*/
+                
                 // Write the item to the DynamoDB table
                 PutItemRequest putItemRequest = new PutItemRequest()
-                        .withTableName("openskydb")
+                        .withTableName(TABLE_NAME)
                         .withItem(item);
+                
+                logger.log("dynamo put item request:"+putItemRequest.toString());                
+                
                 dynamoDB.putItem(putItemRequest); 
             }
             return "Success";
         } catch (Exception e) {
-           logger.log("error converting OpenSky to Normalized Location:"+e.getMessage());
+           logger.log("GENERAL ERRROR converting OpenSky:"+e.getMessage());
             throw new RuntimeException(e);
         }
     }

@@ -36,6 +36,15 @@ use FileZilla w/ SFTP and add the PEM file (instructiosn: https://angus.readthed
 
 ///
 
+set up Lambda in AWS...
+- set up "Trigger" using S3 bucket, PUT trigger
+- set up "Code" - upload jar file - do 'Runtime Settings' - 'Edit' - Java 17 - add handler method (package.classname:method)
+- set up Permissions - go to "Configurations" - "Permissions" - "Edit" - set existing role to a permission setup for:
+	allow dyamoDB *, allow S3 list/get, allow CloudWatch logging
+
+///
+setup DynamoDB (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/JavaDocumentAPIWorkingWithTables.html)
+
 
 
 
