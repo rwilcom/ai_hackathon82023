@@ -96,9 +96,16 @@ Resources:
                   - 'dynamodb:DeleteItem'
                 Resource:
                   - !GetAtt OpenSkyDataTable.Arn
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
     Metadata:
       'AWS::CloudFormation::Designer':
         id: 3ba0a9d9-247d-4e2e-8057-8b764ad211d0
+
 
   MyInstanceProfile:
     Type: 'AWS::IAM::InstanceProfile'
