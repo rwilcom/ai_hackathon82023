@@ -33,8 +33,27 @@ Resources:
           mkdir /home/ec2-user/OpenSky
           mkdir /home/ec2-user/OpenSky/Data
           chown -R ec2-user:ec2-user /home/ec2-user/OpenSky/
+          
           yum install -y java-1.8.0
           yum install -y inotify-tools
+          yum install -y git
+          yum install -y maven
+
+          mkdir /home/ec2-user/code
+          cd /home/ec2-user/code
+          git clone https://pgandyai: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@github.com/rwilcom/ai_hackathon82023.git
+          cd ai_hackathon82023/
+          mvn clean install
+
+          chown -R ec2-user:ec2-user /home/ec2-user/code
+          aws s3 cp /home/ec2-user/code/ai_hackathon82023/target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar s3://ai-hackathon-event-bucket-1/
+
+          chmod +x /home/ec2-user/code/ai_hackathon82023/src/main/java/com/ai/aws/scripts/EC2toS3.sh
+          nohup /home/ec2-user/code/ai_hackathon82023/src/main/java/com/ai/aws/scripts/EC2toS3.sh > /home/ec2-user/EC2toSH.log 2>&1 &
+          nohup java -cp /home/ec2-user/code/ai_hackathon82023/target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar com.ai.adapters.OpenSkyAdapter > /home/ec2-user/OpenSky.log 2>&1 &
+
+         
+
       SecurityGroups:
         - !Ref MySecurityGroup
     Metadata:
@@ -106,6 +125,40 @@ Resources:
       'AWS::CloudFormation::Designer':
         id: 3ba0a9d9-247d-4e2e-8057-8b764ad211d0
 
+  # Lambda Function Definition
+  S3TriggerLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: MyInstance
+    Properties:
+      Handler: com.ai.aws.adapters.lambda.OpenSkyAdapterLambda::handleRequest
+      Role: !GetAtt [ MyLambdaExecutionRole, Arn ]
+      FunctionName: MyS3TriggerFunction
+      Code:
+        S3Bucket: ai-hackathon-event-bucket-1
+        S3Key: aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar
+      Runtime: java8
+      Timeout: 15  # Adjust as needed
+
+  # S3 Event Source for Lambda
+  S3BucketEventSource:
+    Type: AWS::S3::Bucket
+    DependsOn: MyBucket
+    Properties:
+      BucketName: ai-hackathon-event-bucket-1
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Event: s3:ObjectCreated:*
+          Function: !GetAtt [ S3TriggerLambda, Arn ]
+          
+  # Permission for S3 to trigger Lambda
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref S3TriggerLambda
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: arn:aws:s3:::ai-hackathon-event-bucket-1
 
   MyInstanceProfile:
     Type: 'AWS::IAM::InstanceProfile'
@@ -153,6 +206,16 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:s3:::${MyBucket}'
                   - !Sub 'arn:aws:s3:::${MyBucket}/*'
+        - PolicyName: EC2CloudWatchLogsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
     Metadata:
       'AWS::CloudFormation::Designer':
         id: 7afd3a06-5c30-4fdb-a7c9-8f5514b820f3

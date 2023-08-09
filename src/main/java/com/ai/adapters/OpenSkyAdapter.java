@@ -84,7 +84,7 @@ public class OpenSkyAdapter {
                 location.velocityMetersPerSec = 0.0;
             }
             
-            System.out.print(location.toString()+"\n");
+            //System.out.print(location.toString()+"\n");
                         
             if( count<throttleOutput ){                
                 writeNormalizedLocationToJsonFile(location, OUTPUT_DIR, OUTPUT_FILE_PREFIX) ;

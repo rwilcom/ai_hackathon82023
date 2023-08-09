@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Directory to watch for new files
-WATCH_DIR="/home/ec2-user/OpenSky/data/"
+WATCH_DIR="/home/ec2-user/OpenSky/Data/"
 
 # S3 bucket and path to upload to
 S3_BUCKET="s3://ai-hackathon-event-bucket-1/"
