@@ -41,7 +41,7 @@ Resources:
 
           mkdir /home/ec2-user/code
           cd /home/ec2-user/code
-          git clone https://pgandyai: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@github.com/rwilcom/ai_hackathon82023.git
+          git clone https://<PutUserName:TokenHereIfyouWantThisToWork@github.com/rwilcom/ai_hackathon82023.git
           cd ai_hackathon82023/
           mvn clean install
 
