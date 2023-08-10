@@ -17,44 +17,13 @@ Resources:
 
   MyWaitCondition:
     Type: "AWS::CloudFormation::WaitCondition"
+    DependsOn: MyInstance
     Properties:
       Handle: !Ref MyWaitHandle
-      Timeout: "600"  # maximum amount of time to wait (seconds)
+      Timeout: "200"  # maximum amount of time to wait (seconds)
+      Count: "0"
   
-  # Lambda Function Definition
-  S3TriggerLambda:
-    Type: AWS::Lambda::Function
-    DependsOn: MyWaitCondition 
-    Properties:
-      Handler: com.ai.aws.adapters.lambda.OpenSkyAdapterLambda::handleRequest
-      Role: !GetAtt [ MyLambdaExecutionRole, Arn ]
-      FunctionName: MyS3TriggerFunction
-      Code:
-        S3Bucket: ai-hackathon-event-bucket-1
-        S3Key: aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar
-      Runtime: java8
-      Timeout: 15  # Adjust as needed
-
-  # S3 Event Source for Lambda
-  S3BucketEventSource:
-    Type: AWS::S3::Bucket
-    DependsOn: MyBucket
-    Properties:
-      BucketName: ai-hackathon-event-bucket-1
-      NotificationConfiguration:
-        LambdaConfigurations:
-        - Event: s3:ObjectCreated:*
-          Function: !GetAtt [ S3TriggerLambda, Arn ]
-          
-  # Permission for S3 to trigger Lambda
-  LambdaInvokePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref S3TriggerLambda
-      Principal: s3.amazonaws.com
-      SourceAccount: !Ref AWS::AccountId
-      SourceArn: arn:aws:s3:::ai-hackathon-event-bucket-1
+  
 
   MyBucket:
     Type: 'AWS::S3::Bucket'
@@ -85,7 +54,7 @@ Resources:
 
           mkdir /home/ec2-user/code
           cd /home/ec2-user/code
-          git clone https://SECRETSAUCEHERE@github.com/rwilcom/ai_hackathon82023.git
+          git clone https://pgandyai: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@github.com/rwilcom/ai_hackathon82023.git
           cd ai_hackathon82023/
           mvn clean install
 
@@ -238,6 +207,39 @@ Resources:
       Metadata:
         'AWS::CloudFormation::Designer':
           id: 7afd3a06-5c30-4fdb-a7c9-8f5514b820f3
+# Lambda Function Definition
+  S3TriggerLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: MyWaitCondition 
+    Properties:
+      Handler: com.ai.aws.adapters.lambda.OpenSkyAdapterLambda::handleRequest
+      Role: !GetAtt [ MyLambdaExecutionRole, Arn ]
+      FunctionName: MyS3TriggerFunction
+      Code:
+        S3Bucket: ai-hackathon-event-bucket-1
+        S3Key: aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar
+      Runtime: java8
+      
 
+  # S3 Event Source for Lambda
+  S3BucketEventSource:
+    Type: AWS::S3::Bucket
+    DependsOn: MyWaitCondition
+    Properties:
+      BucketName: ai-hackathon-event-bucket-1
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Event: s3:ObjectCreated:*
+          Function: !GetAtt [ S3TriggerLambda, Arn ]
+          
+  # Permission for S3 to trigger Lambda
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref S3TriggerLambda
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: arn:aws:s3:::ai-hackathon-event-bucket-1
 
 
