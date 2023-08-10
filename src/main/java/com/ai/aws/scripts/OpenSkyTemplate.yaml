@@ -17,14 +17,12 @@ Resources:
 
   MyWaitCondition:
     Type: "AWS::CloudFormation::WaitCondition"
-    DependsOn: MyInstance
+    DependsOn: MyCodeBuildProject
     Properties:
       Handle: !Ref MyWaitHandle
       Timeout: "200"  # maximum amount of time to wait (seconds)
-      Count: "0"
+      Count: "1"
   
-  
-
   MyBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
@@ -46,26 +44,27 @@ Resources:
           mkdir /home/ec2-user/OpenSky
           mkdir /home/ec2-user/OpenSky/Data
           chown -R ec2-user:ec2-user /home/ec2-user/OpenSky/
+          mkdir /home/ec2-user/code
           
+
           yum install -y java-1.8.0
           yum install -y inotify-tools
-          yum install -y git
-          yum install -y maven
+#          yum install -y git
+#          yum install -y maven
 
-          mkdir /home/ec2-user/code
-          cd /home/ec2-user/code
-          git clone https://pgandyai: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@github.com/rwilcom/ai_hackathon82023.git
-          cd ai_hackathon82023/
-          mvn clean install
+#          cd /home/ec2-user/code
+#          clone
+#          cd ai_hackathon82023/
+#          mvn clean install
 
           chown -R ec2-user:ec2-user /home/ec2-user/code
-          aws s3 cp /home/ec2-user/code/ai_hackathon82023/target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar s3://ai-hackathon-event-bucket-1/
+#          aws s3 cp /home/ec2-user/code/ai_hackathon82023/target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar s3://ai-hackathon-event-bucket-1/
           
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource MyWaitCondition --region ${AWS::Region} >> /home/ec2-user/cfn-signal-output.log 2>&1
+#          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource MyWaitCondition --region ${AWS::Region} >> /home/ec2-user/cfn-signal-output.log 2>&1
 
           chmod +x /home/ec2-user/code/ai_hackathon82023/src/main/java/com/ai/aws/scripts/EC2toS3.sh
           nohup /home/ec2-user/code/ai_hackathon82023/src/main/java/com/ai/aws/scripts/EC2toS3.sh > /home/ec2-user/EC2toSH.log 2>&1 &
-          nohup java -cp /home/ec2-user/code/ai_hackathon82023/target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar com.ai.adapters.OpenSkyAdapter > /home/ec2-user/OpenSky.log 2>&1 &
+#          nohup java -cp /home/ec2-user/code/ai_hackathon82023/target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar com.ai.adapters.OpenSkyAdapter > /home/ec2-user/OpenSky.log 2>&1 &
           
           
 
@@ -242,4 +241,61 @@ Resources:
       SourceAccount: !Ref AWS::AccountId
       SourceArn: arn:aws:s3:::ai-hackathon-event-bucket-1
 
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "codebuild.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "CodeBuildAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "s3:PutObject"
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                Resource:
+                  - !Sub "arn:aws:s3:::${MyBucket}"
+                  - !Sub "arn:aws:s3:::${MyBucket}/*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+
+  MyCodeBuildProject:
+    Type: "AWS::CodeBuild::Project"
+    DependsOn: MyBucket
+    Properties: 
+      Artifacts: 
+        Type: "S3"
+        Location: !Sub "${MyBucket}/code"
+        Packaging: "ZIP"
+      Environment: 
+        ComputeType: "BUILD_GENERAL1_SMALL"
+        Image: "aws/codebuild/standard:5.0"
+        Type: "LINUX_CONTAINER"
+      Name: "MyGitHubJavaBuild"
+      Source: 
+        Type: "GITHUB"
+        Location: "https://github.com/rwilcom/ai_hackathon82023.git"
+        Auth:
+          Type: "OAUTH"
+          Resource: "YOUR_PERSONAL_ACCESS_TOKEN" # You will need to replace this with your token or consider using AWS Secrets Manager
+        BuildSpec: "buildspec.yml"
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
 

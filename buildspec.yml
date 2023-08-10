@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto11  # Using Amazon Corretto 11 (Amazon's distribution of OpenJDK)
+    commands:
+      - echo Installing Maven...
+      - apt-get update -y
+      - apt-get install -y maven
+
+  build:
+    commands:
+      - echo Building the code...
+      - mvn clean install
+
+artifacts:
+  files:
+    - target/*.jar  # Assuming the jar files are located in the target folder after building
