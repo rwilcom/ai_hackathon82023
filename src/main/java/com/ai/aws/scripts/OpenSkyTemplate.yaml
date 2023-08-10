@@ -290,8 +290,8 @@ Resources:
         Type: "GITHUB"
         Location: "https://github.com/rwilcom/ai_hackathon82023.git"
         Auth:
-          Type: "OAUTH"
-          Resource: "SECRETSAUCE" # You will need to replace this with your token or consider using AWS Secrets Manager
+          Type: OAUTH
+          Resource: "SECRETSAREFUN" # You will need to replace this with your token or consider using AWS Secrets Manager
         BuildSpec: "buildspec.yml"
       ServiceRole: !GetAtt CodeBuildServiceRole.Arn
 
