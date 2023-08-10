@@ -11,22 +11,11 @@ Resources:
     Metadata:
       'AWS::CloudFormation::Designer':
         id: 2ec7557d-5e0a-4b51-a400-79d385c9dc5f
-
-  MyWaitHandle:
-    Type: "AWS::CloudFormation::WaitConditionHandle"
-
-  MyWaitCondition:
-    Type: "AWS::CloudFormation::WaitCondition"
-    DependsOn: MyCodeBuildProject
-    Properties:
-      Handle: !Ref MyWaitHandle
-      Timeout: "200"  # maximum amount of time to wait (seconds)
-      Count: "1"
-  
+ 
   MyBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: ai-hackathon-event-bucket-1
+      BucketName: ai-hackathon-event-bucket
     Metadata:
       'AWS::CloudFormation::Designer':
         id: 18c8b289-22bf-4251-b87c-44d90fab2d47
@@ -61,7 +50,7 @@ Resources:
 #          mvn clean install
 
           
-#          aws s3 cp /home/ec2-user/code/ai_hackathon82023/target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar s3://ai-hackathon-event-bucket-1/
+#          aws s3 cp /home/ec2-user/code/ai_hackathon82023/target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar s3://ai-hackathon-event-bucket/
           
 #          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource MyWaitCondition --region ${AWS::Region} >> /home/ec2-user/cfn-signal-output.log 2>&1
 
@@ -136,7 +125,11 @@ Resources:
                   - 'logs:CreateLogGroup'
                   - 'logs:CreateLogStream'
                   - 'logs:PutLogEvents'
-                Resource: 'arn:aws:logs:*:*:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - codebuild:StartBuild
+                Resource: !GetAtt MyCodeBuildProject.Arn # Replace with your CodeBuild project resource name
     Metadata:
       'AWS::CloudFormation::Designer':
         id: 3ba0a9d9-247d-4e2e-8057-8b764ad211d0
@@ -211,23 +204,23 @@ Resources:
 # Lambda Function Definition
   S3TriggerLambda:
     Type: AWS::Lambda::Function
-    DependsOn: MyWaitCondition 
+    DependsOn: MyInstance 
     Properties:
       Handler: com.ai.aws.adapters.lambda.OpenSkyAdapterLambda::handleRequest
       Role: !GetAtt [ MyLambdaExecutionRole, Arn ]
       FunctionName: MyS3TriggerFunction
       Code:
-        S3Bucket: ai-hackathon-event-bucket-1
-        S3Key: aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar
+        S3Bucket: ai-hackathon-event-bucket
+        S3Key: binaries/OpenSky/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar
       Runtime: java8
       
 
   # S3 Event Source for Lambda
   S3BucketEventSource:
     Type: AWS::S3::Bucket
-    DependsOn: MyWaitCondition
+    DependsOn: MyInstance
     Properties:
-      BucketName: ai-hackathon-event-bucket-1
+      BucketName: ai-hackathon-event-bucket
       NotificationConfiguration:
         LambdaConfigurations:
         - Event: s3:ObjectCreated:*
@@ -241,7 +234,7 @@ Resources:
       FunctionName: !Ref S3TriggerLambda
       Principal: s3.amazonaws.com
       SourceAccount: !Ref AWS::AccountId
-      SourceArn: arn:aws:s3:::ai-hackathon-event-bucket-1
+      SourceArn: arn:aws:s3:::ai-hackathon-event-bucket
 
   CodeBuildServiceRole:
     Type: AWS::IAM::Role
@@ -292,13 +285,50 @@ Resources:
         ComputeType: "BUILD_GENERAL1_SMALL"
         Image: "aws/codebuild/standard:5.0"
         Type: "LINUX_CONTAINER"
-      Name: "MyGitHubJavaBuild"
+      Name: "OpenSky"
       Source: 
         Type: "GITHUB"
         Location: "https://github.com/rwilcom/ai_hackathon82023.git"
         Auth:
           Type: "OAUTH"
-          Resource: "" # You will need to replace this with your token or consider using AWS Secrets Manager
+          Resource: "SECRETSAUCE" # You will need to replace this with your token or consider using AWS Secrets Manager
         BuildSpec: "buildspec.yml"
       ServiceRole: !GetAtt CodeBuildServiceRole.Arn
 
+  # Lambda function to trigger the CodeBuild project
+  CodeBuildTriggerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt MyLambdaExecutionRole.Arn
+      Runtime: python3.8
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+
+          def handler(event, context):
+              client = boto3.client('codebuild')
+
+              response = client.start_build(
+                  projectName=os.environ['CODEBUILD_PROJECT_NAME']
+              )
+
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps(response)
+              }
+      Environment:
+        Variables:
+          CODEBUILD_PROJECT_NAME: !Ref MyCodeBuildProject
+
+# CloudFormation custom resource to auto-trigger the Lambda function on stack creation
+  AutoTriggerBuildOnStackCreation:
+    Type: Custom::AutoTriggerBuild
+    Properties:
+      ServiceToken: !GetAtt CodeBuildTriggerLambda.Arn
+
+Outputs:
+  CodeBuildTriggerLambdaOutput:
+    Description: ARN of the Lambda function that triggers the CodeBuild project
+    Value: !GetAtt CodeBuildTriggerLambda.Arn
