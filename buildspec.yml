@@ -16,4 +16,5 @@ phases:
 
 artifacts:
   files:
-    - target/*.jar  # Assuming the jar files are located in the target folder after building
+    - target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar  # Assuming the jar files are located in the target folder after building
+    discard-paths: yes
