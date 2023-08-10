@@ -9,8 +9,9 @@ phases:
     commands:
       - echo Building the code...
       - mvn clean install
+      - cp ./src/main/java/com/ai/aws/scripts/EC2toS3.sh target/EC2toS3.sh
 
 artifacts:
   files:
-    - target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar
+    - target/*
   discard-paths: yes
