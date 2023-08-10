@@ -3,11 +3,10 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      java: corretto11  # Using Amazon Corretto 11 (Amazon's distribution of OpenJDK)
+      java: corretto11
     commands:
       - echo Installing Maven...
       - apt-get update -y
-      - apt-get install -y maven
 
   build:
     commands:
@@ -16,5 +15,5 @@ phases:
 
 artifacts:
   files:
-    - target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar  # Assuming the jar files are located in the target folder after building
-    discard-paths: yes
+    - target/aiHackathon082023-1.0-SNAPSHOT-jar-with-dependencies.jar
+  discard-paths: yes
