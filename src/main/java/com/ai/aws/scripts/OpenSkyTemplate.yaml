@@ -263,7 +263,7 @@ Resources:
 
 
   # CF code for building elastic cache subnet group and creating 4 redis clusters
-  # Still need     
+  # Still need ec2 subnet id to attach to the subnet group below 
 
   # MyCacheSubnetGroup: 
   #   Type: AWS::ElastiCache::SubnetGroup
