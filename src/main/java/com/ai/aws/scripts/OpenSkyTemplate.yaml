@@ -260,3 +260,56 @@ Resources:
           Resource: "SECRETSAREFUN" # You will need to replace this with your token or consider using AWS Secrets Manager
         BuildSpec: "buildspec.yml"
       ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+
+
+  # CF code for building elastic cache subnet group and creating 4 redis clusters
+  # Still need     
+
+  # MyCacheSubnetGroup: 
+  #   Type: AWS::ElastiCache::SubnetGroup
+  #   Properties: 
+  #     CacheSubnetGroupName: aicachesubnet
+  #     Description: "A subnet for Elastic cache"
+  #     SubnetIds: 
+  #       - String # need subnet id from ec2 subnet? 
+
+  # AircraftRedisCache:
+  #   Type: "AWS::ElastiCache::CacheCluster"
+  #   DependsOn: MyCacheSubnetGroup
+  #   Properties:
+  #     CacheNodeType: cache.t4g.micro
+  #     CacheSubnetGroupName: aicachesubnet
+  #     ClusterName: aircraftcache
+  #     Engine: redis
+  #     NumCacheNodes: 1
+  #     Port: 6379
+  # AircraftTypeRedisCache:
+  #   Type: "AWS::ElastiCache::CacheCluster"
+  #   DependsOn: MyCacheSubnetGroup
+  #   Properties:
+  #     CacheNodeType: cache.t4g.micro
+  #     CacheSubnetGroupName: aicachesubnet
+  #     ClusterName: aircrafttypecache
+  #     Engine: redis
+  #     NumCacheNodes: 1
+  #     Port: 6379
+  # AircraftOwnerRedisCache:
+  #   Type: "AWS::ElastiCache::CacheCluster"
+  #   DependsOn: MyCacheSubnetGroup
+  #   Properties:
+  #     CacheNodeType: cache.t4g.micro
+  #     CacheSubnetGroupName: aicachesubnet
+  #     ClusterName: aircraftownercache
+  #     Engine: redis
+  #     NumCacheNodes: 1
+  #     Port: 6379
+  # AircraftDobRedisCache:
+  #   Type: "AWS::ElastiCache::CacheCluster"
+  #   DependsOn: MyCacheSubnetGroup
+  #   Properties:
+  #     CacheNodeType: cache.t4g.micro
+  #     CacheSubnetGroupName: aicachesubnet
+  #     ClusterName: aircraftdobcache
+  #     Engine: redis
+  #     NumCacheNodes: 1
+  #     Port: 6379
