@@ -21,7 +21,7 @@ import java.util.Date;
 public class OpenSkyAdapter {
     
     // private static final String OUTPUT_DIR = "/projects/temp/locs";   //Path to work on a local machine
-    private static final String OUTPUT_DIR = "/home/ec2-user/OpenSky/Data/";     //path to work on amazon ec2
+    private static final String OUTPUT_DIR = "/home/ec2-user/OpenSky/Data"; //path to work on amazon ec2
     private static final String OUTPUT_FILE_PREFIX = "loc";
     
   /**
@@ -36,7 +36,9 @@ public class OpenSkyAdapter {
         
         if( location!=null) {
             try{               
-                FileWriter fileWriter = new FileWriter(fileLocation+"/"+baseFileName+location.uuid+"_"+location.id+"_"+System.currentTimeMillis()+".json"); 
+                String pathAndFileName = fileLocation+"/"+baseFileName+location.uuid+"_"+location.id+"_"+System.currentTimeMillis()+".json";
+                System.out.println("Writing file: "+pathAndFileName);
+                FileWriter fileWriter = new FileWriter(pathAndFileName); 
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 gson.toJson(location, fileWriter);
                 fileWriter.close();                              

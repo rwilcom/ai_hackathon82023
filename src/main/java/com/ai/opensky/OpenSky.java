@@ -49,7 +49,10 @@ public class OpenSky {
     private static final int CYCLE_TEST_COUNT = 10;
     private static final int CYCLE_TEST_PAUSE_MIN = 5;
     
-    private static final String OUTPUT_DIR = "./data";
+    
+    
+    //private static final String OUTPUT_DIR = "./data";
+    private static final String OUTPUT_DIR = "/home/ec2-user/OpenSky/Data"; //path to work on amazon ec2
     private static final String OUTPUT_FILE_PREFIX = "osFlightData";
     
     private static HostnameVerifier hostnameVerifier;
