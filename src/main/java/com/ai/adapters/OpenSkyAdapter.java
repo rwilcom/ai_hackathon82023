@@ -36,7 +36,7 @@ public class OpenSkyAdapter {
         
         if( location!=null) {
             try{               
-                FileWriter fileWriter = new FileWriter(fileLocation+"/"+baseFileName+"_"+location.uid+"_"+System.currentTimeMillis()+".json"); 
+                FileWriter fileWriter = new FileWriter(fileLocation+"/"+baseFileName+location.uuid+"_"+location.id+"_"+System.currentTimeMillis()+".json"); 
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 gson.toJson(location, fileWriter);
                 fileWriter.close();                              
@@ -71,13 +71,19 @@ public class OpenSkyAdapter {
         int throttleOutput = 10;        
         for( OpenSkyRawAirTraffic osra: osraList ){
             NormalizedLocation location = new NormalizedLocation();
+            
+            location.uuid = ""+java.util.UUID.randomUUID();
+            location.id = osra.icao24TransponderAddr;
             location.locationDateTime = osra.timeOfPositionDateTime;
-            location.uid = osra.callsign +"-"+osra.icao24TransponderAddr;
+            location.id = osra.callsign +"-"+osra.icao24TransponderAddr;
+            location.type = "unknown";
             location.longitude = osra.longitude;
             location.latitude = osra.latitude;
             location.altitudeMeters = osra.altitudeMeters;
             location.velocityMetersPerSec = osra.velocityMetersPerSec;
             location.headingDecDegFromNorth0 = osra.headingDecDegFromNorth0;
+            location.properties.put("dob", "unknown");
+            location.properties.put("callsign", osra.callsign);
             
             if( osra.onGround ){
                 location.altitudeMeters = 0.0;

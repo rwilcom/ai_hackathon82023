@@ -4,6 +4,7 @@ import static com.ai.adapters.OpenSkyAdapter.writeNormalizedLocationToJsonFile;
 import com.ai.dto.NormalizedLocation;
 import com.ai.opensky.OpenSky;
 import com.ai.opensky.OpenSkyRawAirTraffic;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
@@ -20,6 +21,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.google.gson.JsonObject;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -62,13 +64,18 @@ public class OpenSkyAdapterLambda implements RequestHandler<S3Event, String> {
             
             for( OpenSkyRawAirTraffic osra: osraList ){
                 NormalizedLocation location = new NormalizedLocation();
+                location.uuid = ""+java.util.UUID.randomUUID();
+                location.id = osra.icao24TransponderAddr;
                 location.locationDateTime = osra.timeOfPositionDateTime;
-                location.uid = osra.callsign +"-"+osra.icao24TransponderAddr;
+                location.id = osra.callsign +"-"+osra.icao24TransponderAddr;
+                location.type = "unknown";
                 location.longitude = osra.longitude;
                 location.latitude = osra.latitude;
                 location.altitudeMeters = osra.altitudeMeters;
                 location.velocityMetersPerSec = osra.velocityMetersPerSec;
                 location.headingDecDegFromNorth0 = osra.headingDecDegFromNorth0;
+                location.properties.put("dob", "unknown");
+                location.properties.put("callsign", osra.callsign);
 
                 if( osra.onGround ){
                     location.altitudeMeters = 0.0;
@@ -88,10 +95,13 @@ public class OpenSkyAdapterLambda implements RequestHandler<S3Event, String> {
                 // Create a DynamoDB item
                
                 AttributeValue avId = new AttributeValue();
-                avId.setS(""+location.uid+location.locationDateTime.getTime());
+                avId.setS(""+location.uuid);
 
                 AttributeValue avCallSignTranspndr = new AttributeValue();
-                avCallSignTranspndr.setS(""+location.uid);
+                avCallSignTranspndr.setS(""+location.id);
+                
+                AttributeValue avType = new AttributeValue();
+                avType.setS(""+location.type);
                 
                 AttributeValue avDateTime = new AttributeValue();
                 avDateTime.setS(""+location.locationDateTime);
@@ -108,14 +118,19 @@ public class OpenSkyAdapterLambda implements RequestHandler<S3Event, String> {
                 AttributeValue avHeadingDecDegN0 = new AttributeValue();
                 avHeadingDecDegN0.setS(""+location.headingDecDegFromNorth0);
  
+                AttributeValue avPropertyBag = new AttributeValue();
+                avPropertyBag.setM(location.properties);
+                
                 Map<String, AttributeValue> item = new HashMap<>();
-                item.put("Id", avId );               
+                item.put("Id", avId );   
+                item.put("type", avType);
                 item.put("callsignTnspr", avCallSignTranspndr );                               
                 item.put("dateTime", avDateTime);
                 item.put("lon", avLon);                                
                 item.put("lat", avLat);                
                 item.put("altM", avAltM);                
-                item.put("headingDecDegN0", avHeadingDecDegN0);                
+                item.put("headingDecDegN0", avHeadingDecDegN0);  
+                item.put("properties", avPropertyBag);
         
                 /*
                 log AttributeValue object
@@ -134,7 +149,7 @@ public class OpenSkyAdapterLambda implements RequestHandler<S3Event, String> {
                 dynamoDB.putItem(putItemRequest); 
             }
             return "Success";
-        } catch (Exception e) {
+        } catch (SdkClientException | IOException e) {
            logger.log("GENERAL ERRROR converting OpenSky:"+e.getMessage());
             throw new RuntimeException(e);
         }
