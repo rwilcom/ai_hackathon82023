@@ -21,7 +21,7 @@ import java.util.Date;
 public class OpenSkyAdapter {
     
     // private static final String OUTPUT_DIR = "/projects/temp/locs";   //Path to work on a local machine
-    private static final String OUTPUT_DIR = "./Data/";     //path to work on amazon ec2
+    private static final String OUTPUT_DIR = "~/OpenSky/Data/";     //path to work on amazon ec2
     private static final String OUTPUT_FILE_PREFIX = "loc";
     
   /**
